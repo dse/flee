@@ -1,0 +1,64 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use feature 'say';
+
+#------------------------------------------------------------------------------
+use File::Basename qw(basename);
+our $PROGNAME = basename($0);
+
+#------------------------------------------------------------------------------
+use open IO => qw(:locale);
+use Encode::Locale;
+use Encode qw(decode);
+BEGIN {
+    @ARGV = map { decode('locale', $_, Encode::FB_CROAK) } @ARGV;
+}
+
+#------------------------------------------------------------------------------
+our $singleQuote = 0;
+
+#------------------------------------------------------------------------------
+use Getopt::Long;
+Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
+Getopt::Long::GetOptions(
+    's|single-quote' => sub { $singleQuote = 1; },
+    'd|double-quote' => sub { $singleQuote = 0; },
+    'help'           => sub { usage(); exit(0); },
+) or die("Type '$PROGNAME --help' for help.\n");
+
+sub usage { print(<<"END"); }
+usage:
+    $PROGNAME [<option> ...] [<filename> ...]
+options:
+    -s, --single-quote
+    -d, --double-quote
+        --help
+END
+
+###############################################################################
+
+while (<>) {
+    s{\R\z}{};
+    if ($singleQuote) {
+        say perlEscapeSingleQuote($_);
+    } else {
+        say perlEscapeDoubleQuote($_);
+    }
+}
+
+sub perlEscapeSingleQuote {
+    my ($string) = @_;
+    local $Data::Dumper::Indent = 0;
+    local $Data::Dumper::Terse = 1;
+    local $Data::Dumper::Useqq = 0;
+    return Data::Dumper::Dumper($string);
+}
+
+sub perlEscapeDoubleQuote {
+    my ($string) = @_;
+    local $Data::Dumper::Indent = 0;
+    local $Data::Dumper::Terse = 1;
+    local $Data::Dumper::Useqq = 1;
+    return Data::Dumper::Dumper($string);
+}

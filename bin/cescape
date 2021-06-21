@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use feature 'say';
+
+#------------------------------------------------------------------------------
+use File::Basename qw(basename);
+our $PROGNAME = basename($0);
+
+#------------------------------------------------------------------------------
+use open IO => qw(:locale);
+use Encode::Locale;
+use Encode qw(decode);
+BEGIN {
+    @ARGV = map { decode('locale', $_, Encode::FB_CROAK) } @ARGV;
+}
+
+###############################################################################
+
+while (<>) {
+    s{\R\z}{};
+    say cEscape($_);
+}
+
+sub cEscape {
+    my ($string, %options) = @_;
+    $string =~ s{\\}{\\\\}g;
+    $string =~ s{\$}{\\\$}g;
+    $string =~ s{\"}{\\"}g;
+    $string =~ s{\'}{\\'}g;
+    $string =~ s{\x07}{\\a}g;     # bell
+    $string =~ s{\x08}{\\b}g;     # backspace
+    $string =~ s{\x09}{\\t}g;     # tab
+    $string =~ s{\x0a}{\\n}g;     # line feed
+    $string =~ s{\x0b}{\\v}g;     # vertical tab
+    $string =~ s{\x0c}{\\f}g;     # form feed
+    $string =~ s{\x0d}{\\r}g;     # carriage return
+    $string =~ s{[\x00-\x1f\x7f-\xff]}
+                {"\\x" . sprintf('%02x', ord($&))}ge;
+    $string =~ s{[\x{0100}-\x{ffff}]}
+                {"\\u" . sprintf('%04x', ord($&))}ge;
+    $string =~ s{[\x{10000}-\x{10ffff}]}
+                {"\\U" . sprintf('%08x', ord($&))}ge;
+    return '"' . $string . '"';
+}
