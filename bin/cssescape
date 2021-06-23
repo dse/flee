@@ -93,9 +93,9 @@ sub cssEscapeIdentifier {
                 {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
     $string =~ s{([\x{010000}-\x{10ffff}])(?=([A-Fa-f0-9 ]?))}
                 {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
-    return '"' . $string . '"' if $quoteStyle eq 'double-quote';
-    return "'" . $string . "'" if $quoteStyle eq 'single-quote';
-    return;
+    # return '"' . $string . '"' if $quoteStyle eq 'double-quote';
+    # return "'" . $string . "'" if $quoteStyle eq 'single-quote';
+    return $string;
 }
 
 # hat-tip:
