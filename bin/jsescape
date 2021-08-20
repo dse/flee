@@ -35,6 +35,7 @@ usage:
 options:
     -s, --single-quote
     -d, --double-quote
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
         --help
 END
 
