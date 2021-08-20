@@ -17,14 +17,16 @@ BEGIN {
 
 #------------------------------------------------------------------------------
 our $singleQuote = 0;
+our $nonAsciiPrintableOnly = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
-    's|single-quote' => sub { $singleQuote = 1; },
-    'd|double-quote' => sub { $singleQuote = 0; },
-    'help'           => sub { usage(); exit(0); },
+    's|single-quote'   => sub { $singleQuote = 1; },
+    'd|double-quote'   => sub { $singleQuote = 0; },
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
+    'help'             => sub { usage(); exit(0); },
 ) or die("Type '$PROGNAME --help' for help.\n");
 
 sub usage { print(<<"END"); }
@@ -49,18 +51,28 @@ while (<>) {
 
 sub jsEscapeSingleQuote {
     my ($string) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{\'}{\\'}g;
-    $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-    $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    } else {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{\'}{\\'}g;
+        $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    }
     return "'" . $string . "'";
 }
 
 sub jsEscapeDoubleQuote {
     my ($string) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{\"}{\\"}g;
-    $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-    $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    } else {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{\"}{\\"}g;
+        $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    }
     return '"' . $string . '"';
 }
