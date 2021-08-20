@@ -17,6 +17,7 @@ BEGIN {
 
 #------------------------------------------------------------------------------
 our $singleQuote = 0;
+our $nonAsciiPrintableOnly = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
@@ -24,6 +25,7 @@ Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
     's|single-quote' => sub { $singleQuote = 1; },
     'd|double-quote' => sub { $singleQuote = 0; },
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
     'help'           => sub { usage(); exit(0); },
 ) or die("Type '$PROGNAME --help' for help.\n");
 
@@ -33,6 +35,7 @@ usage:
 options:
     -s, --single-quote
     -d, --double-quote
+    -N, --non-ascii-printable-only
         --help
 END
 
@@ -60,11 +63,13 @@ sub pythonEscapeDoubleQuote {
 sub pythonEscape {
     my ($string, %options) = @_;
     my $prefix = '';
-    $string =~ s{\\}{\\\\}g;
-    if ($options{singleQuote}) {
-        $string =~ s{\'}{\\'}g;
-    } else {
-        $string =~ s{\"}{\\"}g;
+    if (!$nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g;
+        if ($options{singleQuote}) {
+            $string =~ s{\'}{\\'}g;
+        } else {
+            $string =~ s{\"}{\\"}g;
+        }
     }
     $string =~ s{\x07}{\\a}g;     # bell
     $string =~ s{\x08}{\\b}g;     # backspace
