@@ -17,11 +17,13 @@ BEGIN {
 
 #------------------------------------------------------------------------------
 our $singleQuote = 0;
+our $slurp = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
+    'slurp'          => \$slurp,
     's|single-quote' => sub { $singleQuote = 1; },
     'd|double-quote' => sub { $singleQuote = 0; },
     'help'           => sub { usage(); exit(0); },
@@ -31,6 +33,7 @@ sub usage { print(<<"END"); }
 usage:
     $PROGNAME [<option> ...] [<filename> ...]
 options:
+        --slurp
     -s, --single-quote
     -d, --double-quote
         --help
@@ -38,27 +41,48 @@ END
 
 ###############################################################################
 
+local $/ = $slurp ? undef : $/;
 while (<>) {
-    s{\R\z}{};
-    if ($singleQuote) {
-        say perlEscapeSingleQuote($_);
+    if ($slurp) {
+        if ($singleQuote) {
+            print perlEscapeSingleQuote($_) . "\n";
+        } else {
+            print perlEscapeDoubleQuote($_) . "\n";
+        }
     } else {
-        say perlEscapeDoubleQuote($_);
+        s{\R\z}{};
+        if ($singleQuote) {
+            say perlEscapeSingleQuote($_);
+        } else {
+            say perlEscapeDoubleQuote($_);
+        }
     }
 }
 
 sub perlEscapeSingleQuote {
     my ($string) = @_;
-    local $Data::Dumper::Indent = 0;
-    local $Data::Dumper::Terse = 1;
-    local $Data::Dumper::Useqq = 0;
-    return Data::Dumper::Dumper($string);
+    if ($string =~ m{[^\x00-\xff]}) {
+        return perlEscapeDoubleQuote($string);
+    }
+    $string =~ s{\\}{\\\\}g;
+    $string =~ s{'}{\\'}g;
+    return "'" . $string . "'";
 }
 
 sub perlEscapeDoubleQuote {
     my ($string) = @_;
-    local $Data::Dumper::Indent = 0;
-    local $Data::Dumper::Terse = 1;
-    local $Data::Dumper::Useqq = 1;
-    return Data::Dumper::Dumper($string);
+    $string =~ s{\\}{\\\\}g;
+    $string =~ s{\x07}{\\a}g;
+    $string =~ s{\x08}{\\b}g;
+    $string =~ s{\x09}{\\t}g;
+    $string =~ s{\x0a}{\\n}g;
+    $string =~ s{\x0c}{\\f}g;
+    $string =~ s{\x0d}{\\r}g;
+    $string =~ s{\x1b}{\\e}g;
+    $string =~ s{"}{\\"}g;
+    $string =~ s{\$}{\\\$}g;
+    $string =~ s{@}{\\@}g;
+    $string =~ s{[\x00-\x1f\x7f-\xff]}{sprintf("\\%o", ord($&))}ge;
+    $string =~ s{[^\x00-\xff]}{sprintf("\\x{%x}", ord($&))}ge;
+    return '"' . $string . '"';
 }
