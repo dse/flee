@@ -15,18 +15,50 @@ BEGIN {
     @ARGV = map { decode('locale', $_, Encode::FB_CROAK) } @ARGV;
 }
 
+#------------------------------------------------------------------------------
+our $slurp = 0;
+
+#------------------------------------------------------------------------------
+use Getopt::Long;
+Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
+Getopt::Long::GetOptions(
+    'slurp' => \$slurp,
+    'help'  => sub { usage(); exit(0); },
+) or die("Type '$PROGNAME --help' for help.\n");
+
+sub usage { print(<<"END"); }
+usage:
+    $PROGNAME [<option> ...] [<filename> ...]
+options:
+        --slurp
+        --help
+END
+
 ###############################################################################
 
+local $/ = $/;
+if ($slurp) {
+    $/ = undef;
+}
 while (<>) {
-    s{\R\z}{};
-    say jsonEscape($_);
+    if (!$slurp) {
+        s{\R\z}{};
+        say jsonEscape($_);
+    } else {
+        print jsonEscape($_);
+    }
 }
 
 sub jsonEscape {
     my ($string) = @_;
     $string =~ s{\\}{\\\\}g;
     $string =~ s{\"}{\\"}g;
-    $string =~ s{/}{\\/}g;
+    $string =~ s{/}{\\/}g;      # necessary?
+    $string =~ s{\x08}{\\b}g;   # backspace
+    $string =~ s{\x09}{\\t}g;   # tab
+    $string =~ s{\x0a}{\\n}g;   # line feed
+    $string =~ s{\x0c}{\\f}g;   # form feed
+    $string =~ s{\x0d}{\\r}g;   # carriage return
     $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
     $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
     return '"' . $string . '"';
