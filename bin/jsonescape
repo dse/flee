@@ -41,11 +41,11 @@ if ($slurp) {
     $/ = undef;
 }
 while (<>) {
-    if (!$slurp) {
+    if ($slurp) {
+        print jsonEscape($_) . "\n";
+    } else {
         s{\R\z}{};
         say jsonEscape($_);
-    } else {
-        print jsonEscape($_);
     }
 }
 
