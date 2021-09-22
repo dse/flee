@@ -41,8 +41,14 @@ use HTML::Entities qw(encode_entities);
 while (<>) {
     s{\R\z}{};
     if ($nonAsciiPrintableOnly) {
-        say encode_entities($_, '^\\x20-\\x7e');
+        say encodeEntitiesNonAsciiPrintableOnly($_);
     } else {
         say encode_entities($_);
     }
+}
+
+sub encodeEntitiesNonAsciiPrintableOnly {
+    my ($string) = @_;
+    $string =~ s{[^\t\r\n -~]+}{encode_entities($&)}ge;
+    return $string;
 }
