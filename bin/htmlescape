@@ -16,21 +16,21 @@ BEGIN {
 }
 
 #------------------------------------------------------------------------------
-our $nonAsciiOnly = 0;
+our $nonAsciiPrintableOnly = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
-    'N|non-ascii-only' => \$nonAsciiOnly,
-    'help' => sub { usage(); exit(0); },
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
+    'help'             => sub { usage(); exit(0); },
 ) or die("Type '$PROGNAME --help' for help.\n");
 
 sub usage { print(<<"END"); }
 usage:
     $PROGNAME [<option> ...] [<filename> ...]
 options:
-    -N, --non-ascii-only
+    -N, --non-ascii-printable-only
         --help
 END
 
@@ -40,14 +40,14 @@ use HTML::Entities qw(encode_entities);
 
 while (<>) {
     s{\R\z}{};
-    if ($nonAsciiOnly) {
-        say encodeEntitiesNonAsciiOnly($_);
+    if ($nonAsciiPrintableOnly) {
+        say encodeEntitiesNonAsciiPrintableOnly($_);
     } else {
         say encode_entities($_);
     }
 }
 
-sub encodeEntitiesNonAsciiOnly {
+sub encodeEntitiesNonAsciiPrintableOnly {
     my ($string) = @_;
     $string =~ s{[^\t\r\n -~]+}{encode_entities($&)}ge;
     return $string;

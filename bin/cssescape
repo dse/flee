@@ -18,6 +18,7 @@ BEGIN {
 #------------------------------------------------------------------------------
 our $quoteStyle = 'single-quote';
 our $escapeStyle = 'string';
+our $nonAsciiPrintableOnly = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
@@ -27,6 +28,7 @@ Getopt::Long::GetOptions(
     'd|double-quote' => sub { $quoteStyle = 'double-quote'; },
     'i|identifier'   => sub { $escapeStyle = 'identifier'; },
     'string'         => sub { $escapeStyle = 'string'; },
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
     'help'           => sub { usage(); exit(0); },
 ) or die("Type '$PROGNAME --help' for help.\n");
 
@@ -38,6 +40,7 @@ options:
     -d, --double-quote
     -i, --identifier
         --string
+    -N, --non-ascii-printable-only
         --help
 END
 
@@ -63,8 +66,10 @@ sub cssEscape {
 
 sub cssEscapeSingleQuote {
     my ($string) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{'}{\\'}g;
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{'}{\\'}g;
+    }
     $string =~ s{([\t\n\v\f\r])(?=([A-Fa-f0-9 ]?))}
                 {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
     return "'" . $string . "'";
@@ -72,8 +77,10 @@ sub cssEscapeSingleQuote {
 
 sub cssEscapeDoubleQuote {
     my ($string) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{"}{\\"}g;
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{"}{\\"}g;
+    }
     $string =~ s{([\t\n\v\f\r])(?=([A-Fa-f0-9 ]?))}
                 {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
     return '"' . $string . '"';
@@ -81,10 +88,16 @@ sub cssEscapeDoubleQuote {
 
 sub cssEscapeIdentifier {
     my ($string) = @_;
-    $string =~ s{\\}{\\\\}g;    # always escape \ first.
-    $string =~ s{^([[:digit:]])(?=([A-Fa-f0-9 ]?))}
-                {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
-    $string =~ s{([\- !"#$%&'()*+,./:;<=>?@[]^`\{|\}~])}{\\$1}g;
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g; # always escape \ first.
+
+        # string starting with digit followed by hexdigit or space
+        $string =~ s{^([[:digit:]])(?=([A-Fa-f0-9 ]?))}
+                    {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
+
+        # string containing space (" ") and any punctuation except "_" "\\"
+        $string =~ s{([\- !"#$%&'()*+,./:;<=>?@[]^`\{|\}~])}{\\$1}g;
+    }
     $string =~ s{([\t\n\v\f\r])(?=([A-Fa-f0-9 ]?))}
                 {"\\" . sprintf('%02x', ord($1)) . ($2 eq '' ? '' : ' ')}ge;
     $string =~ s{([\x00-\x1f\x7f-\xff])(?=([A-Fa-f0-9 ]?))}

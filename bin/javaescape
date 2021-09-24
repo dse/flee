@@ -17,6 +17,7 @@ BEGIN {
 
 #------------------------------------------------------------------------------
 our $singleQuote = 0;
+our $nonAsciiPrintableOnly = 0;
 
 #------------------------------------------------------------------------------
 use Getopt::Long;
@@ -24,6 +25,7 @@ Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
     's|single-quote' => sub { $singleQuote = 1; },
     'd|double-quote' => sub { $singleQuote = 0; },
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
     'help'           => sub { usage(); exit(0); },
 ) or die("Type '$PROGNAME --help' for help.\n");
 
@@ -33,6 +35,7 @@ usage:
 options:
     -s, --single-quote
     -d, --double-quote
+    -N, --non-ascii-printable-only
         --help
 END
 
@@ -45,8 +48,10 @@ while (<>) {
 
 sub javaEscape {
     my ($string, %options) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{\"}{\\"}g;
+    if (!$nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{\"}{\\"}g;
+    }
     $string =~ s{\x08}{\\b}g;   # backspace
     $string =~ s{\x09}{\\t}g;   # tab
     $string =~ s{\x0a}{\\n}g;   # line feed

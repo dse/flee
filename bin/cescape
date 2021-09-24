@@ -15,6 +15,25 @@ BEGIN {
     @ARGV = map { decode('locale', $_, Encode::FB_CROAK) } @ARGV;
 }
 
+#------------------------------------------------------------------------------
+our $nonAsciiPrintableOnly = 0;
+
+#------------------------------------------------------------------------------
+use Getopt::Long;
+Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
+Getopt::Long::GetOptions(
+    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
+    'help'             => sub { usage(); exit(0); },
+) or die("Type '$PROGNAME --help' for help.\n");
+
+sub usage { print(<<"END"); }
+usage:
+    $PROGNAME [<option> ...] [<filename> ...]
+options:
+    -N, --non-ascii-printable-only
+        --help
+END
+
 ###############################################################################
 
 while (<>) {
@@ -24,11 +43,13 @@ while (<>) {
 
 sub cEscape {
     my ($string, %options) = @_;
-    $string =~ s{\\}{\\\\}g;
-    $string =~ s{\$}{\\\$}g;
-    $string =~ s{\"}{\\"}g;
-    $string =~ s{\'}{\\'}g;
-    $string =~ s{\x07}{\\a}g;     # bell
+    if ($nonAsciiPrintableOnly) {
+        $string =~ s{\\}{\\\\}g;
+        $string =~ s{\$}{\\\$}g;
+        $string =~ s{\"}{\\"}g;
+        $string =~ s{\'}{\\'}g;
+    }
+    $string =~ s{\x07}{\\a}g; # bell
     $string =~ s{\x08}{\\b}g;     # backspace
     $string =~ s{\x09}{\\t}g;     # tab
     $string =~ s{\x0a}{\\n}g;     # line feed
