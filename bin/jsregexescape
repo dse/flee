@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use open OUT => qw(:locale);
+
+while (<>) {
+    s{\R\z}{};
+    s{[$()*+.?\[\\\]^\{|\}]}{\\$&}g;
+    # ,----------------- perl escapes
+    # |    v------------ js escapes
+    s{\x{0009}}{\\t}g;
+    s{\x{000d}}{\\r}g;
+    s{\x{000a}}{\\n}g;
+    s{\x{000b}}{\\v}g;
+    s{\x{000c}}{\\f}g;
+    s{\x{0008}}{[\\b]}g;
+    s{\x{0000}}{\\0}g;
+    s{[\x{0000}-\x{001f}\x{007f}-\x{00ff}]}{sprintf('\\x%02x', ord($&))}ge;
+    s{[\x{0100}-\x{ffff}]}{sprintf('\\u%04x', ord($&))}ge;
+    print("$_\n");
+}
