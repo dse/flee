@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use feature 'say';
+
+#------------------------------------------------------------------------------
+use File::Basename qw(basename);
+our $PROGNAME = basename($0);
+
+#------------------------------------------------------------------------------
+use open IO => qw(:locale);
+use Encode::Locale;
+use Encode qw(decode);
+BEGIN {
+    @ARGV = map { decode('locale', $_, Encode::FB_CROAK) } @ARGV;
+}
+
+#------------------------------------------------------------------------------
+our $slurp = 0;
+our $trim = 0;
+our $normalize = 0;
+
+#------------------------------------------------------------------------------
+use Getopt::Long;
+Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
+Getopt::Long::GetOptions(
+    't|trim'           => \$trim,
+    'n|normalize'      => \$normalize,
+    's|slurp'          => \$slurp,
+    'h|help'           => sub { usage(); exit(0); },
+) or die("Type '$PROGNAME --help' for help.\n");
+
+sub usage { print(<<"END"); }
+usage:
+    $PROGNAME [<option> ...] [<filename> ...]
+options:
+    -t, --trim
+    -n, --normalize
+    -s, --slurp
+    -h, --help
+END
+
+###############################################################################
+
+local $/ = $slurp ? undef : $/;
+while (<>) {
+    s{\R\z}{};
+    s{\A\s*}{} if $trim || $normalize;
+    s{\s*\z}{} if $trim || $normalize;
+    s{\s+}{ }g if $normalize;
+    $_ = perlRegexEscape($_);
+    print "$_\n";
+}
+
+sub perlRegexEscape {
+    my ($string) = @_;
+    $string =~ s{\\}{\\\\}g;    # has to be first.
+    $string =~ s{ }{[ ]}g;      # in case of /x flag
+    $string =~ s{[$()*+.?\[\]^{|}@]}{\\$&}g; # has to be second.  includes @ so emacs/perl doesn't flag @xxx as array
+    $string =~ s{\a}{\\a}g;
+    $string =~ s{[\b]}{[\\b]}g;
+    $string =~ s{\t}{\\t}g;
+    $string =~ s{\n}{\\n}g;
+    $string =~ s{\f}{\\f}g;
+    $string =~ s{\r}{\\r}g;
+    $string =~ s{\e}{\\e}g;
+    $string =~ s{[\x00-\x1f\x7f-\xff]}{sprintf("\\x{%x}", ord($&))}ge;
+    $string =~ s{[^\x00-\xff]}{sprintf("\\x{%x}", ord($&))}ge;
+    return $string;
+}
