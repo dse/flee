@@ -54,12 +54,12 @@ sub jsEscapeSingleQuote {
     my ($string) = @_;
     if ($nonAsciiPrintableOnly) {
         $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{escapeSurrogatePair($&)}ge;
     } else {
         $string =~ s{\\}{\\\\}g;
         $string =~ s{\'}{\\'}g;
         $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{escapeSurrogatePair($&)}ge;
     }
     return "'" . $string . "'";
 }
@@ -68,12 +68,22 @@ sub jsEscapeDoubleQuote {
     my ($string) = @_;
     if ($nonAsciiPrintableOnly) {
         $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{escapeSurrogatePair($&)}ge;
     } else {
         $string =~ s{\\}{\\\\}g;
         $string =~ s{\"}{\\"}g;
         $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-        $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+        $string =~ s{[\x{10000}-\x{10ffff}]}{escapeSurrogatePair($&)}ge;
     }
     return '"' . $string . '"';
+}
+
+sub escapeSurrogatePair {
+    my ($char) = @_;
+    my $codepoint = ord($char);
+    return if $codepoint < 0x10000;
+    return if $codepoint > 0x10ffff;
+    my $highSurrogate = 0xd800 + int(($codepoint - 0x10000) / 1024);
+    my $lowSurrogate  = 0xdc00 + ($codepoint - 0x10000) % 1024;
+    return sprintf('\\u%04x\\u%04x', $highSurrogate, $lowSurrogate);
 }
