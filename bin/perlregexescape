@@ -55,8 +55,8 @@ while (<>) {
 sub perlRegexEscape {
     my ($string) = @_;
     $string =~ s{\\}{\\\\}g;    # has to be first.
-    $string =~ s{ }{[ ]}g;      # in case of /x flag
     $string =~ s{[$()*+.?\[\]^{|}@]}{\\$&}g; # has to be second.  includes @ so emacs/perl doesn't flag @xxx as array
+    $string =~ s{ }{[ ]}g;      # in case of /x flag
     $string =~ s{\a}{\\a}g;
     $string =~ s{[\b]}{[\\b]}g;
     $string =~ s{\t}{\\t}g;
