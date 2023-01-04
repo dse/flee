@@ -14,5 +14,6 @@ use URI::Escape qw(uri_unescape);
 
 while (<>) {
     s{\R\z}{};
+    s{\+}{ }g;
     say uri_unescape($_);
 }
