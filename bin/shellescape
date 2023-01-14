@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use open ':locale';
+
+while (<>) {
+    s{\R\z}{};
+    printf("%s\n", shellescape($_));
+}
+
+sub shellescape {
+    my ($string, %options) = @_;
+    return $string if $string =~ m{^[-+,./:\@A-Za-z0-9]$};
+    $string =~ s{'+}{"'" . "\\'" x length($&) . "'"}ge;
+    $string = "'$string'";
+    $string =~ s{^''}{};
+    $string =~ s{(?<!\\)''$}{};
+    return $string;
+}
+
+# non-quoted backslash
+#     followed by character other than newline => literal char
+#     followed by newline => ignored (continuation line)
+#
+# ''
+#     every character in single quotes is literal
+#     this includes backslash
+#
+# ""
+#     all characters are literal except for the following
+#         $   retains special meaning
+#         `   retains special meaning when followed by $ ` " \ <newline>
+#         \
+#         !   (when history expansion is enabled and not in posix mode)
+#     backslash preceding ! is not removed
+#
+# non-interactive shells do not have history expansion enabled by default
