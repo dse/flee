@@ -2,16 +2,11 @@
 use warnings;
 use strict;
 use open qw(locale);
-use feature 'say';
-
-#------------------------------------------------------------------------------
 use File::Basename qw(basename);
 our $PROGNAME = basename($0);
 
-#------------------------------------------------------------------------------
 our $nonAsciiPrintableOnly = 0;
 
-#------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
@@ -27,11 +22,11 @@ options:
         --help
 END
 
-###############################################################################
-
 while (<>) {
     s{\R\z}{};
-    say cEscape($_);
+    my $lineTerm = $&;
+    print cEscape($_);
+    print $lineTerm if defined $lineTerm;
 }
 
 sub cEscape {

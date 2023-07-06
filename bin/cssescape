@@ -2,18 +2,13 @@
 use warnings;
 use strict;
 use open qw(locale);
-use feature 'say';
-
-#------------------------------------------------------------------------------
 use File::Basename qw(basename);
 our $PROGNAME = basename($0);
 
-#------------------------------------------------------------------------------
 our $quoteStyle = 'single-quote';
 our $escapeStyle = 'string';
 our $nonAsciiPrintableOnly = 0;
 
-#------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
@@ -37,24 +32,20 @@ options:
         --help
 END
 
-###############################################################################
-
 while (<>) {
     s{\R\z}{};
-    say cssEscape($_);
+    my $lineTerm = $&;
+    print cssEscape($_);
+    print $lineTerm if defined $lineTerm;
 }
 
 sub cssEscape {
     my ($string) = @_;
     if ($escapeStyle eq 'identifier') {
         return cssEscapeIdentifier($string);
-    } elsif ($escapeStyle eq 'string') {
-        return cssEscapeSingleQuote($string) if $quoteStyle eq 'single-quote';
-        return cssEscapeDoubleQuote($string) if $quoteStyle eq 'double-quote';
-        return;
-    } else {
-        return;
     }
+    return cssEscapeSingleQuote($string) if $quoteStyle eq 'single-quote';
+    return cssEscapeDoubleQuote($string);
 }
 
 sub cssEscapeSingleQuote {

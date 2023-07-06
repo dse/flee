@@ -2,16 +2,12 @@
 use warnings;
 use strict;
 use open qw(locale);
-use feature 'say';
-
-#------------------------------------------------------------------------------
 use File::Basename qw(basename);
+use HTML::Entities qw(encode_entities);
 our $PROGNAME = basename($0);
 
-#------------------------------------------------------------------------------
 our $nonAsciiPrintableOnly = 0;
 
-#------------------------------------------------------------------------------
 use Getopt::Long;
 Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
 Getopt::Long::GetOptions(
@@ -27,17 +23,15 @@ options:
         --help
 END
 
-###############################################################################
-
-use HTML::Entities qw(encode_entities);
-
 while (<>) {
     s{\R\z}{};
+    my $lineTerm = $&;
     if ($nonAsciiPrintableOnly) {
-        say encodeEntitiesNonAsciiPrintableOnly($_);
+        print encodeEntitiesNonAsciiPrintableOnly($_);
     } else {
-        say encode_entities($_);
+        print encode_entities($_);
     }
+    print $lineTerm if defined $lineTerm;
 }
 
 sub encodeEntitiesNonAsciiPrintableOnly {
