@@ -29,7 +29,8 @@ END
 $/ = undef if $slurp;
 while (<>) {
     s{\R\z}{} if !$slurp;
-    print js_escape($_), "\n";
+    print js_escape($_);
+    print "\n" if !$slurp;
 }
 
 sub js_escape {

@@ -24,7 +24,8 @@ END
 $/ = undef if $slurp;
 while (<>) {
     s{\R\z}{} if !$slurp;
-    print json_escape($_), "\n";
+    print json_escape($_);
+    print "\n" if !$slurp;
 }
 
 sub jsonEscape {

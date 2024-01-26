@@ -28,7 +28,8 @@ END
 $/ = undef if $slurp;
 while (<>) {
     s{\R\z}{} if !$slurp;
-    print html_escape($_), "\n";
+    print html_escape($_);
+    print "\n" if !$slurp;
 }
 
 sub html_escape {
