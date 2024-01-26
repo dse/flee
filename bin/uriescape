@@ -1,42 +1,34 @@
 #!/usr/bin/env perl
 use warnings;
 use strict;
-use open qw(locale);
-use feature 'say';
-
-#------------------------------------------------------------------------------
-use File::Basename qw(basename);
-our $PROGNAME = basename($0);
-
-#------------------------------------------------------------------------------
-our $singleQuote = 0;
-our $nonAsciiPrintableOnly = 0;
-
-#------------------------------------------------------------------------------
-use Getopt::Long;
-Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
-Getopt::Long::GetOptions(
-    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
-    'help'           => sub { usage(); exit(0); },
-) or die("Type '$PROGNAME --help' for help.\n");
-
-sub usage { print(<<"END"); }
-usage:
-    $PROGNAME [<option> ...] [<filename> ...]
-options:
-    -N, --non-ascii-printable-only
-        --help
-END
-
-###############################################################################
-
+use open IO => qw(locale);
 use URI::Escape qw(uri_escape);
 
+our $slurp = 0;
+our $non_ascii_printable_only = 0;
+
+use Getopt::Long;
+Getopt::Long::Configure('gnu_getopt');
+Getopt::Long::GetOptions(
+    'z|slurp'                    => \$slurp,
+    'N|non-ascii-printable-only' => \$non_ascii_printable_only,
+    'help|?'                     => sub { usage(); exit(0); },
+) or die("Type 'uriescape --help' for help.\n");
+
+sub usage { print(<<"END"); }
+uriescape [<option> ...] [<filename> ...]
+-z, --slurp
+-N, --non-ascii-printable-only
+-?, --help
+END
+
+$/ = undef if $slurp;
 while (<>) {
-    s{\R\z}{};
-    if ($nonAsciiPrintableOnly) {
-        say uri_escape($_, "^ -~");
+    s{\R\z}{} if !$slurp;
+    if ($non_ascii_printable_only) {
+        print uri_escape($_, "^ -~");
     } else {
-        say uri_escape($_);
+        print uri_escape($_);
     }
+    print "\n"  if !$slurp;
 }
