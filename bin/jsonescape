@@ -1,56 +1,37 @@
 #!/usr/bin/env perl
 use warnings;
 use strict;
-use open qw(locale);
-use feature 'say';
+use open IO => qw(:locale);
 
-#------------------------------------------------------------------------------
-use File::Basename qw(basename);
-our $PROGNAME = basename($0);
-
-#------------------------------------------------------------------------------
 our $slurp = 0;
-our $nonAsciiPrintableOnly = 0;
+our $non_ascii_printable_only = 0;
 
-#------------------------------------------------------------------------------
 use Getopt::Long;
-Getopt::Long::Configure('bundling', 'gnu_compat', 'no_ignore_case');
+Getopt::Long::Configure('gnu_getopt');
 Getopt::Long::GetOptions(
-    'slurp' => \$slurp,
-    'N|non-ascii-printable-only' => sub { $nonAsciiPrintableOnly = 1; },
-    'help'             => sub { usage(); exit(0); },
-) or die("Type '$PROGNAME --help' for help.\n");
+    'z|slurp'                    => \$slurp,
+    'N|non-ascii-printable-only' => \$non_ascii_printable_only,
+    'help|?'                     => sub { usage(); exit(0); },
+) or die("Type 'jsonescape --help' for help.\n");
 
 sub usage { print(<<"END"); }
-usage:
-    $PROGNAME [<option> ...] [<filename> ...]
-options:
-        --slurp
-    -N, --non-ascii-printable-only
-        --help
+jsonescape [<option> ...] [<filename> ...]
+-z, --slurp
+-N, --non-ascii-printable-only
+-?, --help
 END
 
-###############################################################################
-
-local $/ = $/;
-if ($slurp) {
-    $/ = undef;
-}
+$/ = undef if $slurp;
 while (<>) {
-    if ($slurp) {
-        print jsonEscape($_) . "\n";
-    } else {
-        s{\R\z}{};
-        say jsonEscape($_);
-    }
+    s{\R\z}{} if !$slurp;
+    print json_escape($_), "\n";
 }
 
 sub jsonEscape {
     my ($string) = @_;
-    if (!$nonAsciiPrintableOnly) {
+    if (!$non_ascii_printable_only) {
         $string =~ s{\\}{\\\\}g;
         $string =~ s{\"}{\\"}g;
-        $string =~ s{/}{\\/}g;
     }
     $string =~ s{\x08}{\\b}g;   # backspace
     $string =~ s{\x09}{\\t}g;   # tab
@@ -58,11 +39,11 @@ sub jsonEscape {
     $string =~ s{\x0c}{\\f}g;   # form feed
     $string =~ s{\x0d}{\\r}g;   # carriage return
     $string =~ s{[\x00-\x1f\x7f-\x{ffff}]}{"\\u" . sprintf('%04x', ord($&))}ge;
-    $string =~ s{[\x{10000}-\x{10ffff}]}{jsonEscapeSurrogatePair($&)}ge;
+    $string =~ s{[\x{10000}-\x{10ffff}]}{json_escape_surrogate_pair($&)}ge;
     return '"' . $string . '"';
 }
 
-sub jsonEscapeSurrogatePair {
+sub json_escape_surrogate_pair {
     my ($char) = @_;
     my $codepoint = ord($char);
     return if $codepoint < 0x10000;
