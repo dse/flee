@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+use open IO => qw(:locale);
+
+while (<>) {
+    s{\R\z}{};
+    print(js_unescape($_));
+    print("\n");
+}
+
+sub js_unescape {
+    my ($string) = @_;
+    $string =~ s{(?:
+                     [^\\\"\x00-\x1f\x80-\x9f]
+                 |
+                     \\[\!-\/:-@\[-\`\{-\~]
+                 |
+                     \\\"
+                 |
+                     \\\\
+                 |
+                     \\/
+                 |
+                     \\b
+                 |
+                     \\f
+                 |
+                     \\n
+                 |
+                     \\r
+                 |
+                     \\t
+                 |
+                     \\u([0-9A-Fa-f]{4})
+                 |
+                     \\u\{([0-9A-Fa-f]+)\}
+                 |
+                     \\x([0-9A-Fa-f]){2}
+                 |
+                     \\c([A-Za-z])
+                 |
+                     \\0(?![0-9])
+                 |
+                     \\0([0-9]{,2})
+                 )}
+                {js_unescape_ch($&)}gxe;
+    return $string;
+}
+
+sub js_unescape_ch {
+    my ($string) = @_;
+    return $string if length($string) < 2;
+    return substr($string, 1) if length($string) == 2 && substr($string, 0, 1) eq "\\" && substr($string, 1) =~ /[\!-\/:-@\[-\`\{-\~]/;
+    return "\x08" if $string eq "\\b";
+    return "\f"   if $string eq "\\f";
+    return "\n"   if $string eq "\\n";
+    return "\r"   if $string eq "\\r";
+    return "\t"   if $string eq "\\t";
+    return chr(0) if $string eq "\\0";
+    return chr(hex($1))         if $string =~ /^\\u([0-9A-Fa-f]{4})$/;
+    return chr(hex($1))         if $string =~ /^\\x([0-9A-Fa-f]{2})$/;
+    return chr(ord(uc $1) - 64) if $string =~ /^\\c([A-Za-z])$/;
+    return chr(hex($1))         if $string =~ /^\\u\{([0-9A-Fa-f]+)\}$/;
+    return chr(oct($1))         if $string =~ /^\\0[0-9]+$/;
+    return "<???>";
+}
