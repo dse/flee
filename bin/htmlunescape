@@ -1,18 +1,62 @@
 #!/usr/bin/env perl
 use warnings;
 use strict;
-use open qw(locale);
-use feature 'say';
+use open IO => qw(:locale);
+use HTML::Entities qw(decode_entities %char2entity %entity2char);
+use Getopt::Long;
+use Data::Dumper qw();
 
-#------------------------------------------------------------------------------
-use File::Basename qw(basename);
-our $PROGNAME = basename($0);
+print("HTMLUNESCAPE\n");
 
-###############################################################################
+our $decode_ascii;
+our $decode_non_ascii;
 
-use HTML::Entities qw(decode_entities);
+Getopt::Long::Configure(qw(gnu_getopt));
+Getopt::Long::GetOptions(
+    'a|ascii-only' => \$decode_ascii,
+    'A|non-ascii-only' => \$decode_non_ascii,
+) or die(":-(");
+
+sub usage { print(<<"END"); }
+usage: htmlunescape [<option> ...] [<filename> ...]
+options:
+  -A, --non-ascii-only
+  -a, --ascii-only
+  -?, --help
+END
+
+if (!defined $decode_ascii && !defined $decode_non_ascii) {
+    $decode_ascii = 1;
+    $decode_non_ascii = 1;
+}
+
+my %char2entity = %HTML::Entities::char2entity;
+my %entity2char = %HTML::Entities::entity2char;
+my @char2entity = keys %char2entity;
+my @entity2char = keys %entity2char;
+if (!$decode_non_ascii) {
+    @char2entity = grep { my $ord = ord($_); !is_non_ascii($ord); } @char2entity;
+    @entity2char = grep { my $ord = ord($entity2char{$_}); !is_non_ascii($ord); } @entity2char;
+}
+if (!$decode_ascii) {
+    @char2entity = grep { my $ord = ord($_); !is_ascii($ord); } @char2entity;
+    @entity2char = grep { my $ord = ord($entity2char{$_}); !is_ascii($ord); } @entity2char;
+}
+%HTML::Entities::char2entity = map { ($_ => $char2entity{$_}) } @char2entity;
+%HTML::Entities::entity2char = map { ($_ => $entity2char{$_}) } @entity2char;
 
 while (<>) {
     s{\R\z}{};
-    say decode_entities($_);
+    $_ = decode_entities($_);
+    print("$_\n");
+}
+
+sub is_ascii {
+    my ($ord) = @_;
+    return $ord >= 32 && $ord <= 126;
+}
+
+sub is_non_ascii {
+    my ($ord) = @_;
+    return $ord < 32 || $ord > 126;
 }

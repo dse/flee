@@ -3,44 +3,55 @@ use warnings;
 use strict;
 use open IO => qw(:locale);
 use HTML::Entities qw(encode_entities);
-
-our $slurp = 0;
-our $non_ascii_printable_only = 0;
-our $ascii_only = 0;
-
 use Getopt::Long;
+
+our $decode_ascii;
+our $decode_non_ascii;
+
 Getopt::Long::Configure('gnu_getopt');
 Getopt::Long::GetOptions(
-    'z|slurp'                    => \$slurp,
-    'N|non-ascii-printable-only' => sub { $non_ascii_printable_only = 1; $ascii_only = 0; },
-    'A|ascii-only'               => sub { $non_ascii_printable_only = 0; $ascii_only = 1; },
-    'help|?'                     => sub { usage(); exit(0); },
+    'a|ascii-only' => \$decode_ascii,
+    'A|non-ascii-only' => \$decode_non_ascii,
 ) or die("Type 'htmlescape --help' for help.\n");
 
 sub usage { print(<<"END"); }
-htmlescape [<option> ...] [<filename> ...]
--z, --slurp
--N, --non-ascii-printable-only
--A, --ascii-only
--?, --help
+usage: htmlescape [<option> ...] [<filename> ...]
+options:
+  -A, --non-ascii-only
+  -a, --ascii-only
+  -?, --help
 END
 
-$/ = undef if $slurp;
-while (<>) {
-    s{\R\z}{} if !$slurp;
-    print html_escape($_);
-    print "\n" if !$slurp;
+if (!defined $decode_ascii && !defined $decode_non_ascii) {
+    $decode_ascii = 1;
+    $decode_non_ascii = 1;
 }
 
-sub html_escape {
-    my ($string) = @_;
-    if ($non_ascii_printable_only) {
-        $string =~ s{[^\t\r\n -~]+}{encode_entities($&)}ge;
-        return $string;
+my $unsafe_regex;
+if ($decode_non_ascii && $decode_ascii) {
+    $unsafe_regex = undef;
+} elsif ($decode_non_ascii) {
+    $unsafe_regex = '^\x20-\x77'
+} elsif ($decode_ascii) {
+    $unsafe_regex = '\x20-\x77'
+}
+
+while (<>) {
+    s{\R\z}{};
+    if (defined $unsafe_regex) {
+        $_ = encode_entities($_, $unsafe_regex);
+    } else {
+        $_ = encode_entities($_);
     }
-    if ($ascii_only) {
-        $string =~ s{[&#'<>]+}{encode_entities($&)}ge;
-        return $string;
-    }
-    return encode_entities($string);
+    print("$_\n");
+}
+
+sub is_ascii {
+    my ($ord) = @_;
+    return $ord >= 32 && $ord <= 126;
+}
+
+sub is_non_ascii {
+    my ($ord) = @_;
+    return $ord < 32 || $ord > 126;
 }
